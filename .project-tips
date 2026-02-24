@@ -1,0 +1,10 @@
+# knowledgeimporter | python/uv/flet
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+▸ Setup:    uv venv; venv+; uv pip install -e ".[dev]"
+▸ Run:      knowledgeimporter
+▸ Dev:      flet run src/knowledgeimporter/main.py
+▸ Test:     pytest
+▸ Lint:     ruff check src/ tests/ && ruff format src/ tests/ --check
+▸ Fix:      ruff check src/ tests/ --fix && ruff format src/ tests/
+▸ Build:    uv build
+▸ Config:   ~/.knowledgeimporter/config.json
