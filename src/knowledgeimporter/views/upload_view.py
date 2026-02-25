@@ -8,13 +8,21 @@ import flet as ft
 
 from knowledgeimporter.models.config import AppConfig
 from knowledgeimporter.services.upload_service import UploadService
+from knowledgeimporter.utils.upload_logger import (
+    append_log,
+    cleanup_old_logs,
+    create_upload_log,
+    finalize_log,
+    get_latest_log,
+    open_log_in_editor,
+)
 from knowledgeimporter.utils.worker import BackgroundWorker
 
 logger = logging.getLogger(__name__)
 
 
 class UploadView:
-    """Main upload screen with folder selection, progress bar, and log."""
+    """Main upload screen with folder selection, progress bar, and file-based log."""
 
     def __init__(
         self,
@@ -28,10 +36,14 @@ class UploadView:
         self._worker = BackgroundWorker()
         self._upload_service: UploadService | None = None
         self._file_count = 0
+        self._current_log: Path | None = None
 
         # File picker is a service in Flet 0.80+, registered via page.services
         self._dir_picker = ft.FilePicker()
         page.services.append(self._dir_picker)
+
+        # Clean up old log files on startup
+        cleanup_old_logs()
 
         # Controls
         self._source_path_text = ft.Text(
@@ -45,7 +57,7 @@ class UploadView:
         self._progress_text = ft.Text("", size=13)
         self._spinner = ft.ProgressRing(width=20, height=20, stroke_width=2, visible=False)
         self._status_text = ft.Text("Ready", size=14, weight=ft.FontWeight.W_600)
-        self._log_list = ft.ListView(expand=True, spacing=2, auto_scroll=True)
+        self._current_file_text = ft.Text("", size=12, italic=True)
         self._stats_text = ft.Text("", size=13)
 
         self._upload_btn = ft.ElevatedButton(
@@ -63,6 +75,12 @@ class UploadView:
             icon=ft.Icons.CANCEL,
             on_click=self._cancel_upload,
             visible=False,
+        )
+        self._view_log_btn = ft.TextButton(
+            "View Log",
+            icon=ft.Icons.DESCRIPTION,
+            on_click=self._view_log,
+            visible=get_latest_log() is not None,
         )
 
         # Update file count if we have a last source dir
@@ -115,17 +133,12 @@ class UploadView:
                 ),
                 self._progress_bar,
                 self._progress_text,
+                self._current_file_text,
                 self._stats_text,
-                ft.Divider(),
-                # Log section
-                ft.Text("Log", size=16, weight=ft.FontWeight.W_600),
-                ft.Container(
-                    content=self._log_list,
-                    border=ft.border.all(1, ft.Colors.OUTLINE),
-                    border_radius=8,
-                    padding=10,
-                    expand=True,
-                    height=150,
+                # Log link
+                ft.Row(
+                    controls=[self._view_log_btn],
+                    alignment=ft.MainAxisAlignment.END,
                 ),
             ],
             spacing=10,
@@ -201,8 +214,14 @@ class UploadView:
             self.page.update()
             return
 
+        # Create log file for this upload session
+        self._current_log = create_upload_log()
+        append_log(self._current_log, f"Source: {source_dir}")
+        append_log(self._current_log, f"Target folder: {self.config.folder_name} ({self.config.default_folder_id})")
+        append_log(self._current_log, f"Patterns: {', '.join(self.config.file_patterns)}")
+        append_log(self._current_log, f"Replace mode: {self.config.replace_existing}")
+
         # Prepare UI for upload
-        self._log_list.controls.clear()
         self._progress_bar.visible = True
         self._progress_bar.value = 0
         self._upload_btn.disabled = True
@@ -212,6 +231,7 @@ class UploadView:
         self._status_text.color = ft.Colors.PRIMARY
         self._stats_text.value = ""
         self._progress_text.value = ""
+        self._current_file_text.value = ""
         self.page.update()
 
         self._upload_service = UploadService(api_key=self.config.langdock_api_key)
@@ -233,6 +253,18 @@ class UploadView:
 
     def _on_progress(self, current: int, total: int, filename: str, status: str) -> None:
         """Called from background thread — delegates UI update to Flet event loop."""
+        # Write to log file (thread-safe file I/O)
+        if self._current_log:
+            if status == "uploading":
+                append_log(self._current_log, f"[UPLOAD] {filename}")
+            elif status == "success":
+                append_log(self._current_log, f"[OK]     {filename}")
+            elif status == "error":
+                append_log(self._current_log, f"[FAIL]   {filename}")
+            elif status == "cancelled":
+                append_log(self._current_log, "[CANCELLED]")
+            else:
+                append_log(self._current_log, f"[{status.upper()}] {filename}")
 
         async def _update():
             if total > 0:
@@ -240,41 +272,30 @@ class UploadView:
             self._progress_text.value = f"{current}/{total}"
 
             if status == "uploading":
-                icon = ft.Icons.UPLOAD
-                color = None
-                text = f"Uploading: {filename}"
+                self._current_file_text.value = f"Uploading: {filename}"
+                self._current_file_text.color = None
             elif status == "success":
-                icon = ft.Icons.CHECK_CIRCLE
-                color = ft.Colors.GREEN
-                text = f"{filename}"
+                self._current_file_text.value = f"{filename}"
+                self._current_file_text.color = ft.Colors.GREEN
             elif status == "error":
-                icon = ft.Icons.ERROR
-                color = ft.Colors.ERROR
-                text = f"{filename} — FAILED"
+                self._current_file_text.value = f"{filename} — FAILED"
+                self._current_file_text.color = ft.Colors.ERROR
             elif status == "cancelled":
-                icon = ft.Icons.CANCEL
-                color = ft.Colors.AMBER
-                text = "Upload cancelled"
+                self._current_file_text.value = "Upload cancelled"
+                self._current_file_text.color = ft.Colors.AMBER
             else:
-                icon = ft.Icons.INFO
-                color = None
-                text = f"{filename} ({status})"
+                self._current_file_text.value = f"{filename} ({status})"
+                self._current_file_text.color = None
 
-            self._log_list.controls.append(
-                ft.Row(
-                    controls=[
-                        ft.Icon(icon, size=16, color=color),
-                        ft.Text(text, size=12, color=color),
-                    ],
-                    spacing=5,
-                )
-            )
             self.page.update()
 
         self.page.run_task(_update)
 
     def _on_upload_complete(self, result: dict) -> None:
         """Called from background thread — delegates UI update to Flet event loop."""
+        # Finalize log file
+        if self._current_log:
+            finalize_log(self._current_log, result)
 
         async def _update():
             total = result.get("total", 0)
@@ -284,19 +305,21 @@ class UploadView:
 
             self._status_text.value = "Complete"
             self._status_text.color = ft.Colors.GREEN if failed == 0 else ft.Colors.AMBER
-            self._stats_text.value = (
-                f"Total: {total} | Success: {success} | Failed: {failed} | Skipped: {skipped}"
-            )
+            self._stats_text.value = f"Total: {total} | Success: {success} | Failed: {failed} | Skipped: {skipped}"
             self._progress_bar.value = 1.0
             self._upload_btn.disabled = False
             self._cancel_btn.visible = False
             self._spinner.visible = False
+            self._current_file_text.value = ""
+            self._view_log_btn.visible = True
             self.page.update()
 
         self.page.run_task(_update)
 
     def _on_upload_error(self, error: Exception) -> None:
         """Called from background thread — delegates UI update to Flet event loop."""
+        if self._current_log:
+            append_log(self._current_log, f"[ERROR] {error}")
 
         async def _update():
             self._status_text.value = f"Error: {error}"
@@ -305,6 +328,8 @@ class UploadView:
             self._cancel_btn.visible = False
             self._spinner.visible = False
             self._progress_bar.visible = False
+            self._current_file_text.value = ""
+            self._view_log_btn.visible = True
             self.page.update()
 
         self.page.run_task(_update)
@@ -316,4 +341,18 @@ class UploadView:
         self._status_text.value = "Cancelling..."
         self._status_text.color = ft.Colors.AMBER
         self._spinner.visible = False
+
+        if self._current_log:
+            append_log(self._current_log, "[CANCELLED] Upload cancelled by user")
+
         self.page.update()
+
+    def _view_log(self, _e: ft.ControlEvent) -> None:
+        """Open the most recent log file in the system editor."""
+        log_file = self._current_log or get_latest_log()
+        if log_file and log_file.exists():
+            open_log_in_editor(log_file)
+        else:
+            self._status_text.value = "No log file available"
+            self._status_text.color = ft.Colors.AMBER
+            self.page.update()

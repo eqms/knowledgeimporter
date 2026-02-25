@@ -30,7 +30,7 @@ class KnowledgeImporterApp:
     async def _configure_page(self) -> None:
         self.page.title = "KnowledgeImporter"
         self.page.theme_mode = ft.ThemeMode.SYSTEM
-        self.page.window.icon = "KnowledgeImporter.png"
+        # App icon is set via flet pack --icon (Windows .ico only at runtime)
         self.page.window.width = 1000
         self.page.window.height = 700
         self.page.window.min_width = 800
