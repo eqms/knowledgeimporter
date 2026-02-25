@@ -1,6 +1,7 @@
 """Universal document converter package."""
 
 from .base import BaseConverter, ConversionResult, RawDocument, Section, ValidationResult
+from .universal_converter import UniversalConverter, UnsupportedFormatError
 
 __all__ = [
     "BaseConverter",
@@ -8,4 +9,6 @@ __all__ = [
     "RawDocument",
     "Section",
     "ValidationResult",
+    "UniversalConverter",
+    "UnsupportedFormatError",
 ]
