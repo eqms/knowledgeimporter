@@ -125,7 +125,7 @@ class UploadView:
                     border_radius=8,
                     padding=10,
                     expand=True,
-                    min_height=150,
+                    height=150,
                 ),
             ],
             spacing=10,
