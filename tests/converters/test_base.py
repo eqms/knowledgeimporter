@@ -1,7 +1,8 @@
 """Tests for BaseConverter ABC and data models."""
 
 import pytest
-from knowledgeimporter.converters.base import RawDocument, Section, ConversionResult, BaseConverter, ValidationResult
+
+from knowledgeimporter.converters.base import BaseConverter, RawDocument, Section, ValidationResult
 
 
 def test_raw_document_creation():

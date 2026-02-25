@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -115,7 +115,9 @@ class BaseConverter(ABC):
         score = found / len(key_tokens)
         status = "ok" if score >= 0.95 else "warning"
         issues = [] if score >= 0.95 else [f"Coverage nur {score:.0%} – manuell prüfen"]
-        return ValidationResult(status=status, coverage_score=score, issues=issues, ai_used=False, corrected_markdown=None)
+        return ValidationResult(
+            status=status, coverage_score=score, issues=issues, ai_used=False, corrected_markdown=None
+        )
 
     def run(self, path: str) -> ConversionResult:
         """Orchestrate extract → generate_markdown → validate."""
