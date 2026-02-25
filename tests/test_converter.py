@@ -306,3 +306,39 @@ class TestUTF8Handling:
         assert "Straße" in content
         assert "München" in content
         svc.cleanup()
+
+
+class TestConversionServiceUniversal:
+    """Tests for new format support via UniversalConverter."""
+
+    def test_csv_file_detected_as_needing_conversion(self):
+        service = ConversionService()
+        assert service.needs_conversion(Path("test.csv"))
+
+    def test_json_file_detected_as_needing_conversion(self):
+        service = ConversionService()
+        assert service.needs_conversion(Path("test.json"))
+
+    def test_xlsx_file_detected_as_needing_conversion(self):
+        service = ConversionService()
+        assert service.needs_conversion(Path("test.xlsx"))
+
+    def test_csv_convert_returns_markdown_path(self, tmp_path):
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("Name,Wert\nA,1\n", encoding="utf-8")
+        service = ConversionService()
+        result = service.convert_file(csv_file)
+        assert result.suffix == ".md"
+        assert result.exists()
+        content = result.read_text(encoding="utf-8")
+        assert "---" in content  # Frontmatter
+        service.cleanup()
+
+    def test_yaml_convert_roundtrip(self, tmp_path):
+        yaml_file = tmp_path / "test.yaml"
+        yaml_file.write_text("name: Testprodukt\npreis: 9.99\n", encoding="utf-8")
+        service = ConversionService()
+        result = service.convert_file(yaml_file)
+        content = result.read_text(encoding="utf-8")
+        assert "Testprodukt" in content
+        service.cleanup()

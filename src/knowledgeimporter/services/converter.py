@@ -8,7 +8,21 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # Extensions that require conversion before upload
-CONVERTIBLE_EXTENSIONS = {".pdf", ".docx", ".html", ".htm", ".odt"}
+CONVERTIBLE_EXTENSIONS = {
+    # Legacy converters (markitdown / odfdo)
+    ".pdf",
+    ".docx",
+    ".html",
+    ".htm",
+    ".odt",
+    # Universal Converter (CSV/JSON/YAML/XML/XLSX)
+    ".csv",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".xml",
+    ".xlsx",
+}
 
 # Extensions supported without conversion
 NATIVE_EXTENSIONS = {".md"}
@@ -69,6 +83,22 @@ class ConversionService:
             self.create_temp_dir()
 
         ext = path.suffix.lower()
+
+        # Universal Converter handles CSV, JSON, YAML, XML, XLSX
+        from knowledgeimporter.converters.universal_converter import UniversalConverter, UnsupportedFormatError
+
+        uc = UniversalConverter()
+        if ext in uc.supported_extensions():
+            try:
+                result = uc.convert(str(path))
+                assert self._temp_dir is not None
+                out_path = self._temp_dir / (path.stem + ".md")
+                out_path.write_text(result.markdown_content, encoding="utf-8")
+                logger.debug("Converted %s -> %s via UniversalConverter", path.name, out_path.name)
+                return out_path
+            except UnsupportedFormatError:
+                pass  # fall through to legacy converters (should not happen)
+
         if ext == ".odt":
             return self._convert_odt(path)
         if ext in {".pdf", ".docx", ".html", ".htm"}:
