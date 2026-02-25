@@ -8,3 +8,17 @@ build/
 .ruff_cache/
 .mypy_cache/
 .DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Claude Code local config (kein Secret, aber nicht public relevant)
+.claude/settings.local.json
+
+# Local config directory (falls versehentlich angelegt)
+.knowledgeimporter/
+
+# Flet build outputs (zusätzlich zu dist/ und build/ oben)
+# build/ ist bereits oben definiert
