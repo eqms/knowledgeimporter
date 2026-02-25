@@ -41,6 +41,13 @@ jobs:
           path: ~/.flet/flutter
           key: flet-flutter-3.41.2-${{ runner.os }}
 
+      - name: Install Linux build dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev
+
       - name: Install uv
         run: pip install uv
 
@@ -53,6 +60,8 @@ jobs:
       - name: Build ${{ matrix.target }}
         run: printf 'y\n' | flet build ${{ matrix.target }} src/knowledgeimporter
         shell: bash
+        env:
+          PYTHONUTF8: "1"   # Windows CP1252 → UTF-8 für Rich-Spinner-Zeichen
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
