@@ -17,5 +17,5 @@ class AppConfig(BaseModel):
     default_folder_id: str = ""
     folder_name: str = ""
     last_source_dir: str = ""
-    file_patterns: list[str] = Field(default_factory=lambda: ["*.md"])
+    file_patterns: list[str] = Field(default_factory=lambda: ["*.md", "*.pdf", "*.docx", "*.html", "*.htm", "*.odt"])
     replace_existing: bool = True

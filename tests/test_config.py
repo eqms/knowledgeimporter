@@ -16,7 +16,7 @@ class TestAppConfig:
         assert config.default_folder_id == ""
         assert config.folder_name == ""
         assert config.last_source_dir == ""
-        assert config.file_patterns == ["*.md"]
+        assert config.file_patterns == ["*.md", "*.pdf", "*.docx", "*.html", "*.htm", "*.odt"]
         assert config.replace_existing is True
 
     def test_custom_values(self):
@@ -76,4 +76,4 @@ class TestAppConfig:
         config1 = AppConfig()
         config2 = AppConfig()
         config1.file_patterns.append("*.txt")
-        assert config2.file_patterns == ["*.md"]
+        assert config2.file_patterns == ["*.md", "*.pdf", "*.docx", "*.html", "*.htm", "*.odt"]

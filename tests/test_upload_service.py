@@ -1,6 +1,8 @@
-"""Tests for UploadService — batch upload, cancel, error handling."""
+"""Tests for UploadService — batch upload, cancel, error handling, conversion."""
 
 from unittest.mock import MagicMock, patch
+
+from knowledgeimporter.services.converter import ConversionError
 
 
 class TestCollectFiles:
@@ -274,3 +276,131 @@ class TestClearFolder:
 
         deleted = svc.clear_folder("folder-123")
         assert deleted == 1  # Only first succeeded
+
+
+class TestUploadBatchWithConversion:
+    """Test batch upload with document conversion."""
+
+    _SYS_MODULES_PATCH = {
+        "eq_chatbot_core": MagicMock(),
+        "eq_chatbot_core.providers": MagicMock(),
+        "eq_chatbot_core.providers.langdock_provider": MagicMock(),
+    }
+
+    def _run_batch_with_mocks(self, tmp_path, mock_conv_setup, patterns, replace=False, on_progress=None):
+        """Run upload_batch with mocked KnowledgeManager and ConversionService."""
+        mock_km = MagicMock()
+        mock_km.list_files.return_value = []
+        mock_km.upload_file.return_value = {"id": "new-file-id"}
+
+        with patch.dict("sys.modules", self._SYS_MODULES_PATCH):
+            import importlib
+
+            import knowledgeimporter.services.upload_service as us_mod
+
+            importlib.reload(us_mod)
+
+            with patch.object(us_mod, "ConversionService") as mock_conv_cls:
+                mock_conv = MagicMock()
+                mock_conv_cls.return_value = mock_conv
+                mock_conv_setup(mock_conv, mock_km)
+
+                svc = us_mod.UploadService.__new__(us_mod.UploadService)
+                svc._km = mock_km
+                svc._cancelled = False
+
+                result = svc.upload_batch(
+                    source_dir=str(tmp_path),
+                    folder_id="folder-123",
+                    patterns=patterns,
+                    replace=replace,
+                    on_progress=on_progress,
+                )
+
+        return result, mock_km, mock_conv
+
+    def test_pdf_converted_then_uploaded(self, tmp_path):
+        """PDF files are converted to MD before upload, with 'converting' status in callbacks."""
+        (tmp_path / "report.pdf").write_bytes(b"%PDF test")
+        progress_calls = []
+
+        converted_md = tmp_path / "converted" / "report.md"
+        converted_md.parent.mkdir()
+        converted_md.write_text("# Converted report", encoding="utf-8")
+
+        def setup(mock_conv, mock_km):
+            mock_conv.needs_conversion.return_value = True
+            mock_conv.convert_file.return_value = converted_md
+
+        result, mock_km, mock_conv = self._run_batch_with_mocks(
+            tmp_path,
+            setup,
+            patterns=["*.pdf"],
+            on_progress=lambda *args: progress_calls.append(args),
+        )
+
+        assert result["success"] == 1
+        assert result["converted"] == 1
+        assert result["failed"] == 0
+
+        # Verify "converting" status was sent
+        statuses = [c[3] for c in progress_calls]
+        assert "converting" in statuses
+        assert "uploading" in statuses
+
+        # Upload used the converted path and .md filename
+        mock_km.upload_file.assert_called_once()
+        upload_call = mock_km.upload_file.call_args
+        assert upload_call[1]["filename"] == "report.md"
+
+        # Cleanup was always called
+        mock_conv.cleanup.assert_called_once()
+
+    def test_conversion_error_skips_file(self, tmp_path):
+        """Files that fail conversion are skipped and counted as failed."""
+        (tmp_path / "broken.pdf").write_bytes(b"not a pdf")
+        (tmp_path / "good.md").write_text("# Good")
+
+        def setup(mock_conv, mock_km):
+            mock_conv.needs_conversion.side_effect = lambda p: p.suffix.lower() == ".pdf"
+            mock_conv.convert_file.side_effect = ConversionError("broken.pdf", "Parse error")
+
+        result, mock_km, mock_conv = self._run_batch_with_mocks(tmp_path, setup, patterns=["*.pdf", "*.md"])
+
+        assert result["total"] == 2
+        assert result["success"] == 1  # good.md uploaded
+        assert result["failed"] == 1  # broken.pdf failed conversion
+        assert result["converted"] == 0  # no successful conversions
+
+    def test_cleanup_called_on_error(self, tmp_path):
+        """Converter cleanup is called even when uploads raise exceptions."""
+        (tmp_path / "doc.md").write_text("# Doc")
+
+        def setup(mock_conv, mock_km):
+            mock_conv.needs_conversion.return_value = False
+            mock_km.upload_file.side_effect = RuntimeError("Network error")
+
+        result, mock_km, mock_conv = self._run_batch_with_mocks(tmp_path, setup, patterns=["*.md"])
+
+        # Cleanup must be called regardless of upload errors
+        mock_conv.cleanup.assert_called_once()
+        assert result["failed"] == 1
+
+    def test_replace_mode_uses_md_name(self, tmp_path):
+        """Replace mode matches against the .md upload name, not original filename."""
+        (tmp_path / "report.pdf").write_bytes(b"%PDF test")
+
+        converted_md = tmp_path / "converted" / "report.md"
+        converted_md.parent.mkdir()
+        converted_md.write_text("# Report", encoding="utf-8")
+
+        def setup(mock_conv, mock_km):
+            mock_conv.needs_conversion.return_value = True
+            mock_conv.convert_file.return_value = converted_md
+            mock_km.list_files.return_value = [{"id": "existing-id", "name": "report.md"}]
+
+        result, mock_km, mock_conv = self._run_batch_with_mocks(tmp_path, setup, patterns=["*.pdf"], replace=True)
+
+        assert result["success"] == 1
+        # Should have deleted the existing .md file
+        mock_km.delete_file.assert_called_once_with("folder-123", "existing-id")

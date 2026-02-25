@@ -57,7 +57,7 @@ class SettingsView:
             label="File Patterns (comma-separated)",
             value=", ".join(config.file_patterns),
             width=300,
-            hint_text="*.md, *.txt",
+            hint_text="*.md, *.pdf, *.docx, *.html, *.odt",
         )
         self._replace_checkbox = ft.Checkbox(
             label="Replace existing files on upload",

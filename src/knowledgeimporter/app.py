@@ -4,6 +4,7 @@ import logging
 
 import flet as ft
 
+from knowledgeimporter import __version__
 from knowledgeimporter.models.config import AppConfig
 from knowledgeimporter.utils.storage import load_config, save_config
 from knowledgeimporter.views.settings_view import SettingsView
@@ -28,7 +29,7 @@ class KnowledgeImporterApp:
         self._build_ui()
 
     async def _configure_page(self) -> None:
-        self.page.title = "KnowledgeImporter"
+        self.page.title = f"KnowledgeImporter v{__version__}"
         self.page.theme_mode = ft.ThemeMode.SYSTEM
         # App icon is set via flet pack --icon (Windows .ico only at runtime)
         self.page.window.width = 1000

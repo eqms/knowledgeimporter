@@ -227,7 +227,7 @@ class UploadView:
         self._upload_btn.disabled = True
         self._cancel_btn.visible = True
         self._spinner.visible = True
-        self._status_text.value = "Uploading..."
+        self._status_text.value = "Processing..."
         self._status_text.color = ft.Colors.PRIMARY
         self._stats_text.value = ""
         self._progress_text.value = ""
@@ -255,7 +255,9 @@ class UploadView:
         """Called from background thread — delegates UI update to Flet event loop."""
         # Write to log file (thread-safe file I/O)
         if self._current_log:
-            if status == "uploading":
+            if status == "converting":
+                append_log(self._current_log, f"[CONV]   {filename}")
+            elif status == "uploading":
                 append_log(self._current_log, f"[UPLOAD] {filename}")
             elif status == "success":
                 append_log(self._current_log, f"[OK]     {filename}")
@@ -271,7 +273,10 @@ class UploadView:
                 self._progress_bar.value = current / total
             self._progress_text.value = f"{current}/{total}"
 
-            if status == "uploading":
+            if status == "converting":
+                self._current_file_text.value = f"Converting: {filename}"
+                self._current_file_text.color = ft.Colors.BLUE
+            elif status == "uploading":
                 self._current_file_text.value = f"Uploading: {filename}"
                 self._current_file_text.color = None
             elif status == "success":
@@ -302,10 +307,14 @@ class UploadView:
             success = result.get("success", 0)
             failed = result.get("failed", 0)
             skipped = result.get("skipped", 0)
+            converted = result.get("converted", 0)
 
             self._status_text.value = "Complete"
             self._status_text.color = ft.Colors.GREEN if failed == 0 else ft.Colors.AMBER
-            self._stats_text.value = f"Total: {total} | Success: {success} | Failed: {failed} | Skipped: {skipped}"
+            stats = f"Total: {total} | Success: {success} | Failed: {failed} | Skipped: {skipped}"
+            if converted > 0:
+                stats += f" | Converted: {converted}"
+            self._stats_text.value = stats
             self._progress_bar.value = 1.0
             self._upload_btn.disabled = False
             self._cancel_btn.visible = False

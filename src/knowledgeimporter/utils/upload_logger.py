@@ -45,11 +45,15 @@ def finalize_log(log_file: Path, result: dict) -> None:
     success = result.get("success", 0)
     failed = result.get("failed", 0)
     skipped = result.get("skipped", 0)
+    converted = result.get("converted", 0)
 
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(f"\n# {'=' * 60}\n")
         f.write(f"# Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"# Total: {total} | Success: {success} | Failed: {failed} | Skipped: {skipped}\n")
+        summary = f"# Total: {total} | Success: {success} | Failed: {failed} | Skipped: {skipped}"
+        if converted > 0:
+            summary += f" | Converted: {converted}"
+        f.write(summary + "\n")
 
     errors = result.get("errors", [])
     if errors:
