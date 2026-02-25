@@ -29,8 +29,9 @@ class UploadView:
         self._upload_service: UploadService | None = None
         self._file_count = 0
 
-        # File picker (Flet 0.80: async, no on_result callback)
+        # File picker is a service in Flet 0.80+, registered via page.services
         self._dir_picker = ft.FilePicker()
+        page.services.append(self._dir_picker)
 
         # Controls
         self._source_path_text = ft.Text(
@@ -73,8 +74,6 @@ class UploadView:
 
         return ft.Column(
             controls=[
-                # FilePicker must be in the control tree
-                self._dir_picker,
                 ft.Text("Upload", size=24, weight=ft.FontWeight.BOLD),
                 ft.Divider(),
                 # Source folder section
