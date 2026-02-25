@@ -17,5 +17,21 @@ class AppConfig(BaseModel):
     default_folder_id: str = ""
     folder_name: str = ""
     last_source_dir: str = ""
-    file_patterns: list[str] = Field(default_factory=lambda: ["*.md", "*.pdf", "*.docx", "*.html", "*.htm", "*.odt"])
+    file_patterns: list[str] = Field(
+        default_factory=lambda: [
+            "*.md",
+            "*.pdf",
+            "*.docx",
+            "*.html",
+            "*.htm",
+            "*.odt",
+            # Universal Converter formats
+            "*.csv",
+            "*.json",
+            "*.yaml",
+            "*.yml",
+            "*.xml",
+            "*.xlsx",
+        ]
+    )
     replace_existing: bool = True
