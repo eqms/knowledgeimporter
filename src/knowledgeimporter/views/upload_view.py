@@ -43,6 +43,7 @@ class UploadView:
         self._folder_info_text = ft.Text(self._folder_display(), size=13)
         self._progress_bar = ft.ProgressBar(value=0, visible=False, width=600)
         self._progress_text = ft.Text("", size=13)
+        self._spinner = ft.ProgressRing(width=20, height=20, stroke_width=2, visible=False)
         self._status_text = ft.Text("Ready", size=14, weight=ft.FontWeight.W_600)
         self._log_list = ft.ListView(expand=True, spacing=2, auto_scroll=True)
         self._stats_text = ft.Text("", size=13)
@@ -106,6 +107,7 @@ class UploadView:
                     controls=[
                         self._upload_btn,
                         self._cancel_btn,
+                        self._spinner,
                         self._status_text,
                     ],
                     spacing=15,
@@ -123,11 +125,18 @@ class UploadView:
                     border_radius=8,
                     padding=10,
                     expand=True,
+                    min_height=150,
                 ),
             ],
             spacing=10,
             expand=True,
         )
+
+    def refresh_target_display(self) -> None:
+        """Refresh target folder display and upload button state after config change."""
+        self._folder_info_text.value = self._folder_display()
+        if self.config.last_source_dir:
+            self._update_file_count(self.config.last_source_dir)
 
     def _folder_display(self) -> str:
         name = self.config.folder_name or "Not configured"
@@ -169,9 +178,7 @@ class UploadView:
                         break
 
         self._file_count = count
-        self._file_count_text.value = (
-            f"{self._file_count} file(s) matching {', '.join(self.config.file_patterns)}"
-        )
+        self._file_count_text.value = f"{self._file_count} file(s) matching {', '.join(self.config.file_patterns)}"
         self._upload_btn.disabled = self._file_count == 0 or not self.config.default_folder_id
 
     def _start_upload(self, _e: ft.ControlEvent) -> None:
@@ -200,6 +207,7 @@ class UploadView:
         self._progress_bar.value = 0
         self._upload_btn.disabled = True
         self._cancel_btn.visible = True
+        self._spinner.visible = True
         self._status_text.value = "Uploading..."
         self._status_text.color = ft.Colors.PRIMARY
         self._stats_text.value = ""
@@ -224,78 +232,82 @@ class UploadView:
         )
 
     def _on_progress(self, current: int, total: int, filename: str, status: str) -> None:
-        """Called from background thread — updates UI."""
-        if total > 0:
-            self._progress_bar.value = current / total
-        self._progress_text.value = f"{current}/{total}"
+        """Called from background thread — delegates UI update to Flet event loop."""
 
-        if status == "uploading":
-            icon = ft.Icons.UPLOAD
-            color = None
-            text = f"Uploading: {filename}"
-        elif status == "success":
-            icon = ft.Icons.CHECK_CIRCLE
-            color = ft.Colors.GREEN
-            text = f"{filename}"
-        elif status == "error":
-            icon = ft.Icons.ERROR
-            color = ft.Colors.ERROR
-            text = f"{filename} — FAILED"
-        elif status == "cancelled":
-            icon = ft.Icons.CANCEL
-            color = ft.Colors.AMBER
-            text = "Upload cancelled"
-        else:
-            icon = ft.Icons.INFO
-            color = None
-            text = f"{filename} ({status})"
+        async def _update():
+            if total > 0:
+                self._progress_bar.value = current / total
+            self._progress_text.value = f"{current}/{total}"
 
-        self._log_list.controls.append(
-            ft.Row(
-                controls=[
-                    ft.Icon(icon, size=16, color=color),
-                    ft.Text(text, size=12, color=color),
-                ],
-                spacing=5,
+            if status == "uploading":
+                icon = ft.Icons.UPLOAD
+                color = None
+                text = f"Uploading: {filename}"
+            elif status == "success":
+                icon = ft.Icons.CHECK_CIRCLE
+                color = ft.Colors.GREEN
+                text = f"{filename}"
+            elif status == "error":
+                icon = ft.Icons.ERROR
+                color = ft.Colors.ERROR
+                text = f"{filename} — FAILED"
+            elif status == "cancelled":
+                icon = ft.Icons.CANCEL
+                color = ft.Colors.AMBER
+                text = "Upload cancelled"
+            else:
+                icon = ft.Icons.INFO
+                color = None
+                text = f"{filename} ({status})"
+
+            self._log_list.controls.append(
+                ft.Row(
+                    controls=[
+                        ft.Icon(icon, size=16, color=color),
+                        ft.Text(text, size=12, color=color),
+                    ],
+                    spacing=5,
+                )
             )
-        )
-
-        try:
             self.page.update()
-        except Exception:
-            pass  # Page may be updating from another thread
+
+        self.page.run_task(_update)
 
     def _on_upload_complete(self, result: dict) -> None:
-        total = result.get("total", 0)
-        success = result.get("success", 0)
-        failed = result.get("failed", 0)
-        skipped = result.get("skipped", 0)
+        """Called from background thread — delegates UI update to Flet event loop."""
 
-        self._status_text.value = "Complete"
-        self._status_text.color = ft.Colors.GREEN if failed == 0 else ft.Colors.AMBER
-        self._stats_text.value = (
-            f"Total: {total} | Success: {success} | Failed: {failed} | Skipped: {skipped}"
-        )
-        self._progress_bar.value = 1.0
-        self._upload_btn.disabled = False
-        self._cancel_btn.visible = False
+        async def _update():
+            total = result.get("total", 0)
+            success = result.get("success", 0)
+            failed = result.get("failed", 0)
+            skipped = result.get("skipped", 0)
 
-        try:
+            self._status_text.value = "Complete"
+            self._status_text.color = ft.Colors.GREEN if failed == 0 else ft.Colors.AMBER
+            self._stats_text.value = (
+                f"Total: {total} | Success: {success} | Failed: {failed} | Skipped: {skipped}"
+            )
+            self._progress_bar.value = 1.0
+            self._upload_btn.disabled = False
+            self._cancel_btn.visible = False
+            self._spinner.visible = False
             self.page.update()
-        except Exception:
-            pass
+
+        self.page.run_task(_update)
 
     def _on_upload_error(self, error: Exception) -> None:
-        self._status_text.value = f"Error: {error}"
-        self._status_text.color = ft.Colors.ERROR
-        self._upload_btn.disabled = False
-        self._cancel_btn.visible = False
-        self._progress_bar.visible = False
+        """Called from background thread — delegates UI update to Flet event loop."""
 
-        try:
+        async def _update():
+            self._status_text.value = f"Error: {error}"
+            self._status_text.color = ft.Colors.ERROR
+            self._upload_btn.disabled = False
+            self._cancel_btn.visible = False
+            self._spinner.visible = False
+            self._progress_bar.visible = False
             self.page.update()
-        except Exception:
-            pass
+
+        self.page.run_task(_update)
 
     def _cancel_upload(self, _e: ft.ControlEvent) -> None:
         if self._upload_service:
@@ -303,4 +315,5 @@ class UploadView:
         self._worker.cancel()
         self._status_text.value = "Cancelling..."
         self._status_text.color = ft.Colors.AMBER
+        self._spinner.visible = False
         self.page.update()

@@ -30,6 +30,7 @@ class KnowledgeImporterApp:
     async def _configure_page(self) -> None:
         self.page.title = "KnowledgeImporter"
         self.page.theme_mode = ft.ThemeMode.SYSTEM
+        self.page.window.icon = "KnowledgeImporter.png"
         self.page.window.width = 1000
         self.page.window.height = 700
         self.page.window.min_width = 800
@@ -94,14 +95,15 @@ class KnowledgeImporterApp:
         self.config = config
         try:
             save_config(config)
-            self.page.open(ft.SnackBar(content=ft.Text("Settings saved")))
+            self.page.show_dialog(ft.SnackBar(content=ft.Text("Settings saved")))
         except Exception as e:
             logger.error("Failed to save config: %s", e)
-            self.page.open(ft.SnackBar(content=ft.Text(f"Save failed: {e}")))
+            self.page.show_dialog(ft.SnackBar(content=ft.Text(f"Save failed: {e}")))
 
         # Update upload view with new config
         if self._upload_view:
             self._upload_view.config = config
+            self._upload_view.refresh_target_display()
 
     def _on_config_changed(self, config: AppConfig) -> None:
         """Called when config changes from upload view (e.g. last_source_dir)."""

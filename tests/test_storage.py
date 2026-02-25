@@ -109,12 +109,13 @@ class TestSaveAndLoadConfig:
         mock_get_key.return_value = real_key
 
         enc = FernetEncryption(real_key)
-        encrypted = enc.encrypt_to_string("my-secret-api-key")
+        encrypted_key = enc.encrypt_to_string("my-secret-api-key")
+        encrypted_folder = enc.encrypt_to_string("folder-123")
 
         config_data = {
-            "langdock_api_key": encrypted,
+            "langdock_api_key": encrypted_key,
             "region": "eu",
-            "default_folder_id": "folder-123",
+            "default_folder_id": encrypted_folder,
             "folder_name": "Test",
             "last_source_dir": "",
             "file_patterns": ["*.md"],

@@ -224,6 +224,10 @@ class SettingsView:
             if ok:
                 self._folder_status.value = f"Folder valid — {file_count} file(s) found"
                 self._folder_status.color = ft.Colors.GREEN
+                # Auto-save config after successful validation
+                config = self._build_config_from_fields()
+                self._on_config_saved(config)
+                self.config = config
             else:
                 self._folder_status.value = "Folder not found or access denied"
                 self._folder_status.color = ft.Colors.ERROR

@@ -1,5 +1,7 @@
 """Entry point for the KnowledgeImporter Flet application."""
 
+from pathlib import Path
+
 import flet as ft
 
 from knowledgeimporter.app import KnowledgeImporterApp
@@ -13,7 +15,7 @@ async def main(page: ft.Page) -> None:
 
 def run() -> None:
     """CLI entry point for the knowledgeimporter command."""
-    ft.run(main)
+    ft.app(target=main, assets_dir=str(Path(__file__).parent))
 
 
 if __name__ == "__main__":

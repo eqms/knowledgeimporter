@@ -35,15 +35,21 @@ def load_config() -> AppConfig:
         logger.warning("Failed to read config file: %s", e)
         return AppConfig()
 
-    encrypted_key = raw.get("langdock_api_key", "")
-    if encrypted_key:
+    fields_to_decrypt = [f for f in ("langdock_api_key", "default_folder_id") if raw.get(f, "")]
+    if fields_to_decrypt:
         try:
             master_key = get_or_create_master_key()
             enc = FernetEncryption(master_key)
-            raw["langdock_api_key"] = enc.decrypt_from_string(encrypted_key)
+            for field in fields_to_decrypt:
+                try:
+                    raw[field] = enc.decrypt_from_string(raw[field])
+                except Exception as e:
+                    logger.warning("Failed to decrypt %s: %s", field, e)
+                    raw[field] = ""
         except Exception as e:
-            logger.warning("Failed to decrypt API key: %s", e)
-            raw["langdock_api_key"] = ""
+            logger.warning("Failed to initialize encryption: %s", e)
+            for field in fields_to_decrypt:
+                raw[field] = ""
 
     return AppConfig(**raw)
 
@@ -54,10 +60,12 @@ def save_config(config: AppConfig) -> None:
 
     data = config.model_dump()
 
-    if data["langdock_api_key"]:
+    fields_to_encrypt = [f for f in ("langdock_api_key", "default_folder_id") if data[f]]
+    if fields_to_encrypt:
         master_key = get_or_create_master_key()
         enc = FernetEncryption(master_key)
-        data["langdock_api_key"] = enc.encrypt_to_string(data["langdock_api_key"])
+        for field in fields_to_encrypt:
+            data[field] = enc.encrypt_to_string(data[field])
 
     CONFIG_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     logger.info("Config saved to %s", CONFIG_FILE)
