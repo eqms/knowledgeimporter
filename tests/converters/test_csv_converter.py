@@ -6,7 +6,6 @@ import pytest
 
 from knowledgeimporter.converters.csv_converter import CsvConverter
 
-
 CSV_SIMPLE = "Name,Preis,Bestand\nArtikel A,4.50,100\nArtikel B,9.90,50\n"
 
 

@@ -3,7 +3,6 @@
 import tempfile
 
 import openpyxl
-import pytest
 
 
 def create_xlsx(rows: list[list]) -> str:
@@ -20,11 +19,13 @@ def create_xlsx(rows: list[list]) -> str:
 def test_xlsx_extracts_rows_as_sections():
     from knowledgeimporter.converters.xlsx_converter import XlsxConverter
 
-    path = create_xlsx([
-        ["Name", "Preis", "Bestand"],
-        ["Artikel A", 4.50, 100],
-        ["Artikel B", 9.90, 50],
-    ])
+    path = create_xlsx(
+        [
+            ["Name", "Preis", "Bestand"],
+            ["Artikel A", 4.50, 100],
+            ["Artikel B", 9.90, 50],
+        ]
+    )
     doc = XlsxConverter().extract(path)
     assert len(doc.sections) == 2
 
@@ -32,10 +33,12 @@ def test_xlsx_extracts_rows_as_sections():
 def test_xlsx_kv_uses_header_names():
     from knowledgeimporter.converters.xlsx_converter import XlsxConverter
 
-    path = create_xlsx([
-        ["Bezeichnung", "Preis"],
-        ["Klebeband", 3.50],
-    ])
+    path = create_xlsx(
+        [
+            ["Bezeichnung", "Preis"],
+            ["Klebeband", 3.50],
+        ]
+    )
     doc = XlsxConverter().extract(path)
     keys = [k for k, _ in doc.sections[0].kv_pairs]
     assert "Bezeichnung" in keys

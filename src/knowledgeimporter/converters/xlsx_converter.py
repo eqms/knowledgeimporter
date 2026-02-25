@@ -30,7 +30,7 @@ class XlsxConverter(BaseConverter):
 
             for idx, row in enumerate(rows[1:], start=2):
                 kv: list[tuple[str, str]] = []
-                for h, val in zip(headers, row):
+                for h, val in zip(headers, row, strict=False):
                     if val is not None:
                         s_val = str(val)
                         all_text_parts.append(s_val)

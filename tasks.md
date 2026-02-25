@@ -13,27 +13,27 @@
 
 ## Phase B: Konverter implementieren (TDD)
 
-- [ ] **Task 3** – `CsvConverter`: CSV mit Encoding-Erkennung (chardet) → Key-Value-Sektionen pro Zeile
-- [ ] **Task 4** – `JsonConverter`: JSON-Flattening mit Dot-Notation, Arrays → mehrere Sektionen
-- [ ] **Task 5** – `YamlConverter`: YAML-Mapping → Sektionen, Anchors/Aliases aufgelöst
-- [ ] **Task 6** – `XmlConverter`: XML mit Namespace-Strip, Attribute als Zusatzfelder
-- [ ] **Task 7** – `XlsxConverter`: Pro-Zeile-Sektionen, Multi-Sheet-Unterstützung
+- [x] **Task 3** – `CsvConverter`: CSV mit Encoding-Erkennung (chardet) → Key-Value-Sektionen pro Zeile
+- [x] **Task 4** – `JsonConverter`: JSON-Flattening mit Dot-Notation, Arrays → mehrere Sektionen
+- [x] **Task 5** – `YamlConverter`: YAML-Mapping → Sektionen, Anchors/Aliases aufgelöst
+- [x] **Task 6** – `XmlConverter`: XML mit Namespace-Strip, Attribute als Zusatzfelder
+- [x] **Task 7** – `XlsxConverter`: Pro-Zeile-Sektionen, Multi-Sheet-Unterstützung
 
 ---
 
 ## Phase C: Orchestrierung & Integration
 
-- [ ] **Task 8** – `UniversalConverter`: Format-Registry (`.csv`, `.json`, `.yaml`, `.yml`, `.xml`, `.xlsx`) + `UnsupportedFormatError`
-- [ ] **Task 9** – `ConversionService` erweitern: `CONVERTIBLE_EXTENSIONS` + `UniversalConverter`-Delegation in `convert_file()`
-- [ ] **Task 10** – `AppConfig`: `file_patterns` Default um neue Formate erweitern
+- [x] **Task 8** – `UniversalConverter`: Format-Registry (`.csv`, `.json`, `.yaml`, `.yml`, `.xml`, `.xlsx`) + `UnsupportedFormatError`
+- [x] **Task 9** – `ConversionService` erweitern: `CONVERTIBLE_EXTENSIONS` + `UniversalConverter`-Delegation in `convert_file()`
+- [x] **Task 10** – `AppConfig`: `file_patterns` Default um neue Formate erweitern
 
 ---
 
 ## Phase D: Qualitätssicherung
 
-- [ ] **Task 11** – Alle Tests grün (`pytest tests/ -v`)
-- [ ] **Task 11** – Ruff-Lint und Format sauber (`ruff check src/ tests/`)
-- [ ] **Task 11** – Finaler Commit `v0.4.0`
+- [x] **Task 11** – Alle Tests grün (`pytest tests/ -v`) — 120/120 PASS
+- [x] **Task 11** – Ruff-Lint und Format sauber (`ruff check src/ tests/`)
+- [x] **Task 11** – Finaler Commit `v0.4.0`
 
 ---
 

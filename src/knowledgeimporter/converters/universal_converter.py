@@ -7,8 +7,8 @@ from pathlib import Path
 from .base import BaseConverter, ConversionResult
 from .csv_converter import CsvConverter
 from .json_converter import JsonConverter
-from .xml_converter import XmlConverter
 from .xlsx_converter import XlsxConverter
+from .xml_converter import XmlConverter
 from .yaml_converter import YamlConverter
 
 
