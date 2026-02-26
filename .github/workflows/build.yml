@@ -63,11 +63,20 @@ jobs:
         env:
           PYTHONUTF8: "1"   # Windows CP1252 → UTF-8 für Rich-Spinner-Zeichen
 
+      - name: Locate build output
+        run: |
+          echo "Searching for build output..."
+          find . -type d -name "${{ matrix.target }}" -path "*/build/*" 2>/dev/null
+          ls -la src/knowledgeimporter/build/${{ matrix.target }}/ 2>/dev/null || true
+          ls -la build/${{ matrix.target }}/ 2>/dev/null || true
+        shell: bash
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: knowledgeimporter-${{ matrix.target }}
-          path: build/${{ matrix.target }}/
+          path: src/knowledgeimporter/build/${{ matrix.target }}/
+          if-no-files-found: error
           retention-days: 7
 
   release:
