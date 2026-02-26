@@ -95,7 +95,7 @@ addopts = "-v --tb=short"
 
 [tool.flet]
 app_name = "KnowledgeImporter"
-app_version = "0.4.5"
+app_version = "0.4.6"
 bundle_id = "io.ownerp.knowledgeimporter"
 product_name = "KnowledgeImporter"
 company = "Equitania Software GmbH"
@@ -116,8 +116,8 @@ packages = false
 # Icon: assets/icon.png wird automatisch zu .icns konvertiert
 
 [tool.flet.windows]
-file_version = "0.4.5.0"
-product_version = "0.4.5.0"
+file_version = "0.4.6.0"
+product_version = "0.4.6.0"
 
 [tool.flet.linux]
 category = "Utility"

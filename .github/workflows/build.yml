@@ -58,10 +58,9 @@ jobs:
         run: pip install flet
 
       - name: Build ${{ matrix.target }}
-        # flet build reads [tool.flet.app].path from pyproject.toml in project root.
-        # DO NOT pass src/knowledgeimporter as argument — that makes flet look for
-        # pyproject.toml inside src/knowledgeimporter/ and miss all dependencies!
-        run: printf 'y\n' | flet build ${{ matrix.target }} -o build/${{ matrix.target }} -v
+        # flet build with app path: reads [tool.flet] from root pyproject.toml,
+        # reads dependencies from src/knowledgeimporter/requirements.txt
+        run: printf 'y\n' | flet build ${{ matrix.target }} src/knowledgeimporter -v
         shell: bash
         env:
           PYTHONUTF8: "1"   # Windows CP1252 → UTF-8 für Rich-Spinner-Zeichen
@@ -69,7 +68,7 @@ jobs:
       - name: Sign and package macOS app
         if: matrix.target == 'macos'
         run: |
-          BUILD_DIR="build/macos"
+          BUILD_DIR="src/knowledgeimporter/build/macos"
           echo "Build output:"
           ls -la "$BUILD_DIR/"
           APP_BUNDLE=$(ls -d "$BUILD_DIR"/*.app 2>/dev/null | head -1)
@@ -91,7 +90,7 @@ jobs:
       - name: Package Linux build
         if: matrix.target == 'linux'
         run: |
-          BUILD_DIR="build/linux"
+          BUILD_DIR="src/knowledgeimporter/build/linux"
           echo "Build output:"
           ls -la "$BUILD_DIR/"
           chmod +x "$BUILD_DIR"/knowledgeimporter 2>/dev/null || true
@@ -101,7 +100,7 @@ jobs:
       - name: Package Windows build
         if: matrix.target == 'windows'
         run: |
-          BUILD_DIR="build/windows"
+          BUILD_DIR="src/knowledgeimporter/build/windows"
           echo "Build output:"
           ls -la "$BUILD_DIR/"
           tar -czf "knowledgeimporter-windows.tar.gz" -C "$BUILD_DIR" .

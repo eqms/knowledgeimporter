@@ -1,0 +1,14 @@
+# Runtime dependencies for flet build packaging.
+# flet build reads this file from the app directory to install packages
+# into the bundled app. Keep in sync with pyproject.toml [project.dependencies].
+# Note: flet/flet-embed is automatically included by flet build.
+eq-chatbot-core>=1.2.1
+keyring>=25.0.0
+pydantic>=2.10.0,<3.0.0
+markitdown[pdf,docx]>=0.1.5
+odfdo>=3.20
+pandas>=2.0.0
+openpyxl>=3.1.0
+pyyaml>=6.0
+lxml>=5.0.0
+chardet>=5.0.0
