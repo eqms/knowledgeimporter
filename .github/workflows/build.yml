@@ -63,20 +63,46 @@ jobs:
         env:
           PYTHONUTF8: "1"   # Windows CP1252 → UTF-8 für Rich-Spinner-Zeichen
 
-      - name: Package build output as tar.gz
+      - name: Sign and package macOS app
+        if: matrix.target == 'macos'
         run: |
-          BUILD_DIR="src/knowledgeimporter/build/${{ matrix.target }}"
+          BUILD_DIR="src/knowledgeimporter/build/macos"
           echo "Build output:"
           ls -la "$BUILD_DIR/"
-          # Fix execute permissions for macOS/Linux binaries
-          if [ "${{ matrix.target }}" = "macos" ]; then
-            chmod +x "$BUILD_DIR"/*.app/Contents/MacOS/* 2>/dev/null || true
-          elif [ "${{ matrix.target }}" = "linux" ]; then
-            chmod +x "$BUILD_DIR"/knowledgeimporter 2>/dev/null || true
+          APP_BUNDLE=$(ls -d "$BUILD_DIR"/*.app 2>/dev/null | head -1)
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "❌ No .app bundle found"
+            exit 1
           fi
-          # tar.gz preserves Unix permissions (unlike zip via upload-artifact)
-          tar -czf "knowledgeimporter-${{ matrix.target }}.tar.gz" -C "$BUILD_DIR" .
-          ls -lh "knowledgeimporter-${{ matrix.target }}.tar.gz"
+          echo "Found app bundle: $APP_BUNDLE"
+          # Ensure execute permissions on the main binary
+          chmod +x "$APP_BUNDLE"/Contents/MacOS/* 2>/dev/null || true
+          # Ad-hoc code sign — satisfies Gatekeeper for direct downloads
+          codesign --force --deep -s - "$APP_BUNDLE"
+          echo "✅ Ad-hoc signed: $APP_BUNDLE"
+          codesign -vv "$APP_BUNDLE"
+          # Package as tar.gz (preserves permissions + signature)
+          tar -czf "knowledgeimporter-macos.tar.gz" -C "$BUILD_DIR" .
+          ls -lh "knowledgeimporter-macos.tar.gz"
+
+      - name: Package Linux build
+        if: matrix.target == 'linux'
+        run: |
+          BUILD_DIR="src/knowledgeimporter/build/linux"
+          echo "Build output:"
+          ls -la "$BUILD_DIR/"
+          chmod +x "$BUILD_DIR"/knowledgeimporter 2>/dev/null || true
+          tar -czf "knowledgeimporter-linux.tar.gz" -C "$BUILD_DIR" .
+          ls -lh "knowledgeimporter-linux.tar.gz"
+
+      - name: Package Windows build
+        if: matrix.target == 'windows'
+        run: |
+          BUILD_DIR="src/knowledgeimporter/build/windows"
+          echo "Build output:"
+          ls -la "$BUILD_DIR/"
+          tar -czf "knowledgeimporter-windows.tar.gz" -C "$BUILD_DIR" .
+          ls -lh "knowledgeimporter-windows.tar.gz"
         shell: bash
 
       - name: Upload artifact
