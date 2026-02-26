@@ -63,19 +63,27 @@ jobs:
         env:
           PYTHONUTF8: "1"   # Windows CP1252 → UTF-8 für Rich-Spinner-Zeichen
 
-      - name: Locate build output
+      - name: Package build output as tar.gz
         run: |
-          echo "Searching for build output..."
-          find . -type d -name "${{ matrix.target }}" -path "*/build/*" 2>/dev/null
-          ls -la src/knowledgeimporter/build/${{ matrix.target }}/ 2>/dev/null || true
-          ls -la build/${{ matrix.target }}/ 2>/dev/null || true
+          BUILD_DIR="src/knowledgeimporter/build/${{ matrix.target }}"
+          echo "Build output:"
+          ls -la "$BUILD_DIR/"
+          # Fix execute permissions for macOS/Linux binaries
+          if [ "${{ matrix.target }}" = "macos" ]; then
+            chmod +x "$BUILD_DIR"/*.app/Contents/MacOS/* 2>/dev/null || true
+          elif [ "${{ matrix.target }}" = "linux" ]; then
+            chmod +x "$BUILD_DIR"/knowledgeimporter 2>/dev/null || true
+          fi
+          # tar.gz preserves Unix permissions (unlike zip via upload-artifact)
+          tar -czf "knowledgeimporter-${{ matrix.target }}.tar.gz" -C "$BUILD_DIR" .
+          ls -lh "knowledgeimporter-${{ matrix.target }}.tar.gz"
         shell: bash
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: knowledgeimporter-${{ matrix.target }}
-          path: src/knowledgeimporter/build/${{ matrix.target }}/
+          path: knowledgeimporter-${{ matrix.target }}.tar.gz
           if-no-files-found: error
           retention-days: 7
 
@@ -93,19 +101,24 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist/
+          merge-multiple: true
 
-      - name: Package artifacts as ZIP
+      - name: Prepare release assets
         run: |
-          cd dist
-          for dir in knowledgeimporter-*/; do
-            name="${dir%/}"
-            zip -r "${name}.zip" "$dir"
-            echo "Created ${name}.zip"
-          done
-          ls -lh *.zip
+          echo "Downloaded artifacts:"
+          ls -lh dist/
+          mkdir -p release
+          # macOS + Linux: tar.gz preserves execute permissions
+          cp dist/knowledgeimporter-macos.tar.gz release/
+          cp dist/knowledgeimporter-linux.tar.gz release/
+          # Windows: repack as zip for Windows users
+          mkdir -p /tmp/win && tar -xzf dist/knowledgeimporter-windows.tar.gz -C /tmp/win
+          (cd /tmp/win && zip -r "$GITHUB_WORKSPACE/release/knowledgeimporter-windows.zip" .)
+          echo "Release assets:"
+          ls -lh release/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.zip
+          files: release/*
           generate_release_notes: true
