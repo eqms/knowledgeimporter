@@ -57,7 +57,7 @@ Homepage = "https://www.ownerp.com"
 Repository = "https://github.com/equitania/knowledgeimporter.git"
 
 [tool.hatch.version]
-path = "src/knowledgeimporter/__init__.py"
+path = "src/knowledgeimporter/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/knowledgeimporter"]
@@ -95,7 +95,7 @@ addopts = "-v --tb=short"
 
 [tool.flet]
 app_name = "KnowledgeImporter"
-app_version = "0.4.0"
+app_version = "0.4.3"
 bundle_id = "io.ownerp.knowledgeimporter"
 product_name = "KnowledgeImporter"
 company = "Equitania Software GmbH"
@@ -109,8 +109,8 @@ module_name = "main"
 # Icon: assets/icon.png wird automatisch zu .icns konvertiert
 
 [tool.flet.windows]
-file_version = "0.4.0.0"
-product_version = "0.4.0.0"
+file_version = "0.4.3.0"
+product_version = "0.4.3.0"
 
 [tool.flet.linux]
 category = "Utility"

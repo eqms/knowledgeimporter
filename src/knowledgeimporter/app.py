@@ -4,7 +4,7 @@ import logging
 
 import flet as ft
 
-from knowledgeimporter import __version__
+from knowledgeimporter._version import __version__
 from knowledgeimporter.models.config import AppConfig
 from knowledgeimporter.utils.storage import load_config, save_config
 from knowledgeimporter.views.settings_view import SettingsView
