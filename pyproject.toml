@@ -95,7 +95,7 @@ addopts = "-v --tb=short"
 
 [tool.flet]
 app_name = "KnowledgeImporter"
-app_version = "0.4.4"
+app_version = "0.4.5"
 bundle_id = "io.ownerp.knowledgeimporter"
 product_name = "KnowledgeImporter"
 company = "Equitania Software GmbH"
@@ -105,12 +105,19 @@ description = "Batch-Upload für LangDock Knowledge Folders"
 path = "src/knowledgeimporter"
 module_name = "main"
 
+[tool.flet.compile]
+app = false
+packages = false
+
+[tool.flet.cleanup]
+packages = false
+
 [tool.flet.macos]
 # Icon: assets/icon.png wird automatisch zu .icns konvertiert
 
 [tool.flet.windows]
-file_version = "0.4.4.0"
-product_version = "0.4.4.0"
+file_version = "0.4.5.0"
+product_version = "0.4.5.0"
 
 [tool.flet.linux]
 category = "Utility"
